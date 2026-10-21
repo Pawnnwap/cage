@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+data/
+*.sqlite3
+dist/
+build/
+node_modules/
+.DS_Store
+caddy_data/
+caddy_config/

@@ -1,0 +1,304 @@
+{
+  "title": "Cage — Container-Scoped Blast Radius Zero",
+  "voice": "en-US-GuyNeural",
+  "segments": [
+    {
+      "id": "hook",
+      "start": 0.0,
+      "end": 18.0,
+      "onscreen": "Cage - containment-first agent control plane",
+      "text": "A coding agent is useful only if you can survive what it does. This is a public Vultr VM. The model comes from Vultr Serverless Inference. Cage gives every run container-scoped blast radius zero, with no host access.",
+      "captions": [
+        {
+          "t": 0.3,
+          "d": 4.9,
+          "text": "A coding agent is useful only\nif you can survive what it does."
+        },
+        {
+          "t": 5.35,
+          "d": 2.2,
+          "text": "This is a public Vultr VM."
+        },
+        {
+          "t": 7.7,
+          "d": 2.6,
+          "text": "The model comes from Vultr\nServerless Inference."
+        },
+        {
+          "t": 10.45,
+          "d": 3.4,
+          "text": "Cage gives every run\ncontainer-scoped blast radius zero,"
+        },
+        {
+          "t": 14.0,
+          "d": 2.6,
+          "text": "with no host access."
+        }
+      ]
+    },
+    {
+      "id": "real_task",
+      "start": 18.0,
+      "end": 48.0,
+      "onscreen": "write, execute, verify - real exit code and stdout",
+      "text": "I ask for a chart. The agent writes a Python file through a mediated tool, then executes it inside a fresh container. The run returns a real exit code of zero and real stdout. It prints chart dot png written, plus the size in bytes. The API key stays in the control plane and never enters the sandbox. The timeline records write file, command started, command finished.",
+      "captions": [
+        {
+          "t": 18.3,
+          "d": 1.9,
+          "text": "I ask for a chart."
+        },
+        {
+          "t": 20.35,
+          "d": 3.7,
+          "text": "The agent writes a Python file\nthrough a mediated tool,"
+        },
+        {
+          "t": 24.2,
+          "d": 2.6,
+          "text": "then executes it inside a fresh\ncontainer."
+        },
+        {
+          "t": 26.95,
+          "d": 4.4,
+          "text": "The run returns a real exit code\nof zero and real stdout."
+        },
+        {
+          "t": 31.5,
+          "d": 3.7,
+          "text": "It prints chart dot png written, plus\nthe size in bytes."
+        },
+        {
+          "t": 35.35,
+          "d": 4.8,
+          "text": "The API key stays in the control plane\nand never enters the sandbox."
+        },
+        {
+          "t": 40.3,
+          "d": 3.7,
+          "text": "The timeline records write file,\ncommand started, command finished."
+        }
+      ]
+    },
+    {
+      "id": "boundary",
+      "start": 48.0,
+      "end": 70.0,
+      "onscreen": "network none - read-only root - UID 1000 - 512 MB",
+      "text": "Here is the boundary. Docker shares the host kernel, so kernel escapes are out of scope. The sandbox has no host mount, no network, no IPC sharing, and no API key. The workspace is a 64 megabyte tmpfs, so a runaway writer cannot fill the VM disk. Enforced per task.",
+      "captions": [
+        {
+          "t": 48.3,
+          "d": 1.6,
+          "text": "Here is the boundary."
+        },
+        {
+          "t": 50.05,
+          "d": 4.4,
+          "text": "Docker shares the host kernel,\nso kernel escapes are out of scope."
+        },
+        {
+          "t": 54.6,
+          "d": 3.4,
+          "text": "The sandbox has no host mount,\nno network, no IPC sharing,"
+        },
+        {
+          "t": 58.15,
+          "d": 2.0,
+          "text": "and no API key."
+        },
+        {
+          "t": 60.3,
+          "d": 3.4,
+          "text": "The workspace is a 64 megabyte tmpfs,\nso a runaway writer cannot fill"
+        },
+        {
+          "t": 63.85,
+          "d": 2.0,
+          "text": "the VM disk."
+        },
+        {
+          "t": 66.0,
+          "d": 2.4,
+          "text": "Enforced per task."
+        }
+      ]
+    },
+    {
+      "id": "agent_mediated",
+      "start": 70.0,
+      "end": 95.0,
+      "onscreen": "every tool call has a receipt",
+      "text": "Second run. I ask the agent to delete the hostname file in etc, through run command. See the tool call, the exit code, and the read only error. The sandbox refuses, and the refusal arrives as a tool result, not a crash. If the model declines, this is the direct drill fallback. The receipt is in the evidence stream.",
+      "captions": [
+        {
+          "t": 70.3,
+          "d": 1.3,
+          "text": "Second run."
+        },
+        {
+          "t": 71.75,
+          "d": 3.4,
+          "text": "I ask the agent to delete the\nhostname file in etc,"
+        },
+        {
+          "t": 75.3,
+          "d": 2.0,
+          "text": "through run command."
+        },
+        {
+          "t": 77.45,
+          "d": 4.4,
+          "text": "See the tool call, the exit code,\nand the read only error."
+        },
+        {
+          "t": 82.0,
+          "d": 3.4,
+          "text": "The sandbox refuses, and the refusal\narrives as a tool result,"
+        },
+        {
+          "t": 85.55,
+          "d": 1.9,
+          "text": "not a crash."
+        },
+        {
+          "t": 87.6,
+          "d": 3.7,
+          "text": "If the model declines, this is the\ndirect drill fallback."
+        },
+        {
+          "t": 91.45,
+          "d": 1.9,
+          "text": "The receipt is in the\nevidence stream."
+        }
+      ]
+    },
+    {
+      "id": "drills_a",
+      "start": 95.0,
+      "end": 120.0,
+      "onscreen": "rm -rf contained - read-only canary - cross-task",
+      "text": "First drill. Delete every file under root, with no preserve flags. The read only root refuses it. The read only canary fails if the rootfs is writable, independent of UID 1000. That control catches a writable root. The cross-task drill checks the peer is alive before asserting isolation. Two sandboxes, one cannot read the other workspace.",
+      "captions": [
+        {
+          "t": 95.3,
+          "d": 4.0,
+          "text": "First drill. Delete every file\nunder root, with no preserve flags."
+        },
+        {
+          "t": 99.45,
+          "d": 2.6,
+          "text": "The read only root refuses it."
+        },
+        {
+          "t": 102.2,
+          "d": 3.4,
+          "text": "The read only canary fails if the\nrootfs is writable,"
+        },
+        {
+          "t": 105.75,
+          "d": 2.2,
+          "text": "independent of UID 1000."
+        },
+        {
+          "t": 108.1,
+          "d": 2.2,
+          "text": "That control catches a writable root."
+        },
+        {
+          "t": 110.45,
+          "d": 4.2,
+          "text": "The cross-task drill checks the peer\nis alive before asserting isolation."
+        },
+        {
+          "t": 114.8,
+          "d": 2.6,
+          "text": "Two sandboxes, one cannot read the\nother workspace."
+        }
+      ]
+    },
+    {
+      "id": "drills_b_host",
+      "start": 120.0,
+      "end": 140.0,
+      "onscreen": "timeout, PID ceiling, no secrets, no route",
+      "text": "An infinite loop dies on the inner timeout, exit one twenty four, not memory pressure. A fork bomb hits the process ceiling. Secret and network probes find nothing. Back on the VM, the hostname file is still there, and no sandbox container remains.",
+      "captions": [
+        {
+          "t": 120.3,
+          "d": 3.4,
+          "text": "An infinite loop dies on the\ninner timeout, exit one twenty four,"
+        },
+        {
+          "t": 123.85,
+          "d": 2.0,
+          "text": "not memory pressure."
+        },
+        {
+          "t": 126.0,
+          "d": 2.6,
+          "text": "A fork bomb hits the process ceiling."
+        },
+        {
+          "t": 128.75,
+          "d": 2.2,
+          "text": "Secret and network probes find nothing."
+        },
+        {
+          "t": 131.1,
+          "d": 3.4,
+          "text": "Back on the VM, the hostname file\nis still there."
+        },
+        {
+          "t": 134.65,
+          "d": 2.2,
+          "text": "No sandbox container remains."
+        }
+      ]
+    },
+    {
+      "id": "evidence_close",
+      "start": 140.0,
+      "end": 163.0,
+      "onscreen": "sealed at completion · Ed25519 · verifier VALID",
+      "text": "The evidence is sealed at completion. The signature proves this control plane produced the pack, not that the host is honest. The pack holds task, events, signature, public key, and fingerprint. The owner is not in it. The verifier prints VALID. Every tool call has a receipt.",
+      "captions": [
+        {
+          "t": 140.2,
+          "d": 2.2,
+          "text": "The evidence is sealed at completion."
+        },
+        {
+          "t": 142.6,
+          "d": 4.0,
+          "text": "The signature proves this control plane\nproduced the pack,"
+        },
+        {
+          "t": 146.8,
+          "d": 2.1,
+          "text": "not that the host is honest."
+        },
+        {
+          "t": 149.1,
+          "d": 3.6,
+          "text": "The pack holds task, events, signature,\npublic key, and fingerprint."
+        },
+        {
+          "t": 152.9,
+          "d": 2.2,
+          "text": "The owner is not in it."
+        },
+        {
+          "t": 155.3,
+          "d": 1.8,
+          "text": "The verifier prints VALID."
+        },
+        {
+          "t": 157.3,
+          "d": 2.2,
+          "text": "Every tool call has a receipt."
+        }
+      ]
+    }
+  ]
+}

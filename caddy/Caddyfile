@@ -1,0 +1,9 @@
+:80 {
+    encode gzip
+    reverse_proxy app:8080 {
+        header_up X-Forwarded-For {remote_host}
+        health_uri /healthz
+        health_interval 10s
+        health_timeout 3s
+    }
+}

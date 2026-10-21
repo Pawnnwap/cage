@@ -1,0 +1,96 @@
+services:
+  sandboxd:
+    build:
+      context: .
+      dockerfile: sandboxd/Dockerfile
+    environment:
+      SANDBOX_IMAGE: cage-sandbox:latest
+      SANDBOXD_TOKEN: ${SANDBOXD_TOKEN}
+      TTL_SECONDS: "7200"
+      MAX_SANDBOXES: ${MAX_SANDBOXES:-4}
+      WORKSPACE_LIMIT_MB: ${WORKSPACE_LIMIT_MB:-64}
+      SANDBOX_MEMORY_MB: ${SANDBOX_MEMORY_MB:-512}
+      SANDBOX_CPUS: ${SANDBOX_CPUS:-1.0}
+      SANDBOX_PIDS_LIMIT: ${SANDBOX_PIDS_LIMIT:-128}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/healthz')",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  app:
+    build: .
+    environment:
+      SANDBOX_MODE: docker
+      SANDBOXD_URL: http://sandboxd:8090
+      SANDBOXD_TOKEN: ${SANDBOXD_TOKEN}
+      LLM_MODE: ${LLM_MODE:-vultr}
+      VULTR_BASE_URL: ${VULTR_BASE_URL:-https://api.vultrinference.com/v1}
+      VULTR_API_KEY: ${VULTR_API_KEY}
+      VULTR_MODEL: ${VULTR_MODEL:-qwen3.8-27b}
+      DATA_DIR: /data
+      EVIDENCE_KEY_PATH: ${EVIDENCE_KEY_PATH:-/data/evidence_key.pem}
+      MAX_STEPS: ${MAX_STEPS:-24}
+      TASK_TIMEOUT_S: ${TASK_TIMEOUT_S:-600}
+      PROBE_TIMEOUT_S: ${PROBE_TIMEOUT_S:-10}
+      MAX_TASK_TOKENS: ${MAX_TASK_TOKENS:-200000}
+      MAX_DAILY_TOKENS: ${MAX_DAILY_TOKENS:-2000000}
+      MAX_TASKS_PER_DAY: ${MAX_TASKS_PER_DAY:-100}
+      MAX_CONCURRENT_TASKS: ${MAX_CONCURRENT_TASKS:-2}
+      MAX_CONCURRENT_PROBES: ${MAX_CONCURRENT_PROBES:-1}
+      MAX_PROBE_REPORTS: ${MAX_PROBE_REPORTS:-200}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-6}
+      TRUST_PROXY: "true"
+      DEMO_ENABLED: ${DEMO_ENABLED:-true}
+      WORKSPACE_LIMIT_MB: ${WORKSPACE_LIMIT_MB:-64}
+      SANDBOX_MEMORY_MB: ${SANDBOX_MEMORY_MB:-512}
+      SANDBOX_CPUS: ${SANDBOX_CPUS:-1.0}
+      SANDBOX_PIDS_LIMIT: ${SANDBOX_PIDS_LIMIT:-128}
+      MAX_SANDBOXES: ${MAX_SANDBOXES:-4}
+    volumes:
+      - ./data:/data
+    # Only Caddy is public. Keep the app port on loopback for debugging.
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      sandboxd:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz')",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

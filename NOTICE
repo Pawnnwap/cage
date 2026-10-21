@@ -1,0 +1,13 @@
+Cage
+Copyright (c) 2026 Cage contributors
+
+This project is an independent implementation for Vultr Agent Rush.
+
+It was inspired by architectural concepts from super-opencode
+(https://github.com/Pawnnwap/super-opencode), which is licensed under
+the Apache License 2.0. No source code from super-opencode is included
+in this repository; the containment layer, sandboxd service, signed
+evidence, drills, UI, and deployment are original work.
+
+If you believe any file contains adapted code, please open an issue
+with the file and the source so the attribution can be corrected.

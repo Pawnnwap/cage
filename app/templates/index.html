@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ app_name }} — containment-first agent control plane</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: "#080b0e",
+            panel: "#0d1217",
+            line: "#1c2630",
+            acid: "#b8f25b",
+            cyan: "#63e6ff",
+            danger: "#ff6b6b",
+          },
+          fontFamily: {
+            sans: ["Inter", "ui-sans-serif", "system-ui"],
+            mono: ["JetBrains Mono", "ui-monospace", "SFMono-Regular"],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body class="min-h-screen bg-ink text-slate-200 font-sans antialiased">
+  <div class="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(184,242,91,0.08),transparent_35%),radial-gradient(circle_at_80%_10%,rgba(99,230,255,0.06),transparent_30%)]"></div>
+
+  <header class="relative z-10 border-b border-line/80 bg-ink/80 backdrop-blur">
+    <div class="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-5 py-3">
+      <div class="flex items-center gap-3">
+        <div class="grid h-9 w-9 place-items-center rounded-xl border border-acid/30 bg-acid/10">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b8f25b" stroke-width="1.8">
+            <path d="M12 3 4 6v6c0 5 3.4 8 8 9 4.6-1 8-4 8-9V6l-8-3Z"/>
+            <path d="M9 12.5l2 2 4-4"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-semibold tracking-tight text-white">{{ app_name }}</h1>
+            <span class="rounded-full border border-acid/30 bg-acid/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-acid">Vultr Agent Rush</span>
+          </div>
+          <p class="text-xs text-slate-400">Containment-first agent control plane · container-scoped blast radius zero</p>
+        </div>
+      </div>
+      <div class="hidden items-center gap-2 md:flex">
+        <span class="chip"><span class="dot dot-acid"></span>Vultr Serverless Inference</span>
+        <span class="chip"><span class="dot dot-cyan"></span>Docker sandbox</span>
+        <span class="chip font-mono text-[10px] text-slate-400">{{ model }}</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="relative z-10 mx-auto grid max-w-[1600px] grid-cols-1 gap-4 p-4 lg:grid-cols-12">
+    <!-- Left: new run + history -->
+    <section class="flex flex-col gap-4 lg:col-span-3">
+      <div class="panel p-4">
+        <div class="mb-3 flex items-center justify-between">
+          <h2 class="text-sm font-semibold text-white">New run</h2>
+          <span class="text-[10px] uppercase tracking-wider text-slate-500">ephemeral sandbox</span>
+        </div>
+        <textarea id="prompt" rows="6" class="input w-full resize-none" placeholder="Describe a coding task. Cage will plan, write, execute, and verify it inside a throwaway sandbox."></textarea>
+        <div class="mt-3 flex flex-wrap gap-1.5">
+          <button class="example" data-prompt="Create solution.py that generates a sine wave with matplotlib, saves it to chart.png, and prints the file size. Run it and verify the chart exists.">sine chart</button>
+          <button class="example" data-prompt="Write a Python script that builds a small CSV of monthly revenue, computes the total, and saves summary.json. Run it and show the output.">csv summary</button>
+          <button class="example" data-prompt="Create a failing pytest test and a function that should pass it. Run pytest, fix the function, and run it again.">fix a test</button>
+        </div>
+        <button id="createBtn" class="btn-primary mt-3 w-full" onclick="createTask()">
+          Run in sandbox
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+        <p class="mt-2 text-[10px] leading-relaxed text-slate-500">Every command is mediated by sandboxd. No host shell, no network, no secrets.</p>
+      </div>
+
+      <div class="panel flex min-h-0 flex-1 flex-col p-4">
+        <div class="mb-3 flex items-center justify-between">
+          <h2 class="text-sm font-semibold text-white">Runs</h2>
+          <button class="text-[10px] uppercase tracking-wider text-slate-500 hover:text-slate-300" onclick="loadTasks()">refresh</button>
+        </div>
+        <div id="taskList" class="space-y-1.5 overflow-y-auto pr-1">
+          <div class="empty-small">No runs yet.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Center: live run -->
+    <section class="panel flex min-h-[70vh] flex-col lg:col-span-6">
+      <div class="flex items-center justify-between border-b border-line/80 px-4 py-3">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span id="liveDot" class="dot dot-idle"></span>
+            <h2 id="runTitle" class="truncate text-sm font-semibold text-white">No run selected</h2>
+          </div>
+          <p id="runMeta" class="mt-0.5 truncate text-[11px] text-slate-500">Select a run or start a new one.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="runStatus" class="badge badge-idle">idle</span>
+          <button id="destroyBtn" class="btn-ghost hidden" onclick="destroyTask()">Destroy</button>
+        </div>
+      </div>
+      <div id="timeline" class="timeline flex-1 overflow-y-auto p-4">
+        <div class="empty-state">
+          <div class="empty-icon">⌁</div>
+          <h3>An agent with a container-scoped blast radius of zero</h3>
+          <p>Cage runs a coding agent inside an ephemeral, network-isolated container. Watch every tool call, command, and containment drill here.</p>
+        </div>
+      </div>
+      <div class="border-t border-line/80 px-4 py-2">
+        <div class="flex items-center justify-between text-[10px] text-slate-500">
+          <span id="footerHint">No active sandbox.</span>
+          <span class="font-mono">SSE · live</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right: sandbox + drills -->
+    <section class="flex flex-col gap-4 lg:col-span-3">
+      <div class="panel p-4">
+        <div class="mb-3 flex items-center justify-between">
+          <h2 class="text-sm font-semibold text-white">Sandbox</h2>
+          <span id="sandboxMode" class="badge badge-idle">{{ sandbox_mode }}</span>
+        </div>
+        <p class="mb-2 text-[10px] uppercase tracking-wider text-slate-600">Configured limits · live stats below <span id="limitsSource"></span></p>
+        <div class="grid grid-cols-2 gap-2 text-[11px]">
+          <div class="metric"><span>Network</span><b id="mNetwork">—</b></div>
+          <div class="metric"><span>vCPU</span><b id="mCpu">—</b></div>
+          <div class="metric"><span>Memory</span><b id="mMem">—</b></div>
+          <div class="metric"><span>PIDs</span><b id="mPids">—</b></div>
+          <div class="metric col-span-2"><span>Workspace tmpfs</span><b id="mWorkspace">—</b></div>
+        </div>
+        <div class="mt-3 rounded-lg border border-line bg-ink/60 p-2.5">
+          <div class="text-[10px] uppercase tracking-wider text-slate-500">Container</div>
+          <div id="containerId" class="mt-1 truncate font-mono text-[10px] text-slate-400">—</div>
+          <div class="mt-2 text-[10px] text-slate-500">Evidence: Ed25519 signed <span id="keyFp" class="font-mono text-slate-400">—</span></div>
+        </div>
+        <div class="mt-3 space-y-2">
+          <div class="bar-label"><span>CPU · live</span><span id="cpuText">0%</span></div>
+          <div class="bar"><div id="cpuBar" class="bar-fill bg-acid" style="width:0%"></div></div>
+          <div class="bar-label"><span>Memory · live</span><span id="memText">0 MB</span></div>
+          <div class="bar"><div id="memBar" class="bar-fill bg-cyan" style="width:0%"></div></div>
+        </div>
+        <div class="mt-3 flex gap-2">
+          <button class="btn-ghost flex-1" onclick="exportEvidence()">Evidence JSON</button>
+          <button class="btn-ghost flex-1" onclick="refreshStats()">Stats</button>
+        </div>
+      </div>
+
+      <div class="panel flex-1 p-4">
+        <div class="mb-2 flex items-center justify-between">
+          <h2 class="text-sm font-semibold text-white">Containment drills</h2>
+          <span class="text-[10px] uppercase tracking-wider text-slate-500">live proof</span>
+        </div>
+        <p class="mb-3 text-[11px] leading-relaxed text-slate-500">Run hostile commands against a disposable sandbox. A pass means the container-scoped blast radius held.</p>
+        <div class="grid grid-cols-2 gap-1.5">
+          <button class="drill" data-probe="rm_rf" onclick="runProbe('rm_rf')">rm -rf</button>
+          <button class="drill" data-probe="infinite_loop" onclick="runProbe('infinite_loop')">infinite loop</button>
+          <button class="drill" data-probe="fork_bomb" onclick="runProbe('fork_bomb')">fork bomb</button>
+          <button class="drill" data-probe="secret_probe" onclick="runProbe('secret_probe')">secret probe</button>
+          <button class="drill" data-probe="network_probe" onclick="runProbe('network_probe')">network probe</button>
+          <button class="drill" data-probe="host_write" onclick="runProbe('host_write')">host write</button>
+          <button class="drill" data-probe="readonly_canary" onclick="runProbe('readonly_canary')">read-only canary</button>
+          <button class="drill" data-probe="cross_task" onclick="runProbe('cross_task')">cross-task</button>
+        </div>
+        <div id="probeResult" class="mt-3"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="relative z-10 border-t border-line/60 px-5 py-2 text-center text-[10px] text-slate-600">
+    No network egress · 64MB tmpfs workspace · no API keys in the sandbox · one ephemeral container per run · signed evidence
+  </footer>
+
+  <script>
+    const state = { tasks: [], currentId: null, source: null, lastEventId: 0, statsTimer: null, config: null };
+    const $ = (id) => document.getElementById(id);
+
+    const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+
+    const fmtTime = (ts) => new Date((ts || Date.now() / 1000) * 1000).toLocaleTimeString([], { hour12: false });
+
+    async function api(path, options = {}) {
+      const response = await fetch(path, {
+        headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+        ...options,
+      });
+      if (!response.ok) {
+        let detail = response.statusText;
+        try { detail = (await response.json()).detail || detail; } catch (_) {}
+        throw new Error(detail);
+      }
+      return response.json();
+    }
+
+    function statusClass(status) {
+      return {
+        queued: "badge-idle", running: "badge-run", completed: "badge-ok",
+        failed: "badge-fail", cancelled: "badge-warn",
+      }[status] || "badge-idle";
+    }
+
+    function setStatus(status) {
+      const el = $("runStatus");
+      el.textContent = status || "idle";
+      el.className = `badge ${statusClass(status)}`;
+      const dot = $("liveDot");
+      dot.className = `dot ${status === "running" ? "dot-acid pulse" : status === "completed" ? "dot-ok" : status === "failed" ? "dot-fail" : "dot-idle"}`;
+    }
+
+    async function loadConfig() {
+      try {
+        state.config = await api("/api/config");
+        const limits = state.config.limits || {};
+        $("sandboxMode").textContent = state.config.sandbox_mode;
+        $("mNetwork").textContent = limits.network || "—";
+        $("mCpu").textContent = limits.cpus ?? "—";
+        $("mMem").textContent = limits.memory_mb ? `${limits.memory_mb} MB` : "—";
+        $("mPids").textContent = limits.pids_limit ?? "—";
+        $("mWorkspace").textContent = limits.workspace_mb ? `${limits.workspace_mb} MB` : "—";
+        $("keyFp").textContent = state.config.evidence_public_key_fingerprint || "—";
+        $("limitsSource").textContent = state.config.limits_source ? `· ${state.config.limits_source}` : "";
+      } catch (error) {
+        console.warn(error);
+      }
+    }
+
+    async function loadTasks() {
+      try {
+        state.tasks = await api("/api/tasks");
+        renderTaskList();
+      } catch (error) { console.warn(error); }
+    }
+
+    function renderTaskList() {
+      const host = $("taskList");
+      if (!state.tasks.length) {
+        host.innerHTML = '<div class="empty-small">No runs yet.</div>';
+        return;
+      }
+      host.innerHTML = state.tasks.map((task) => `
+        <button class="task-item ${task.id === state.currentId ? "task-active" : ""}" onclick="selectTask('${task.id}')">
+          <span class="dot ${task.status === "running" ? "dot-acid pulse" : task.status === "completed" ? "dot-ok" : task.status === "failed" ? "dot-fail" : "dot-idle"}"></span>
+          <span class="min-w-0 flex-1 text-left">
+            <span class="block truncate text-[11px] font-medium text-slate-200">${esc(task.title)}</span>
+            <span class="block truncate text-[10px] text-slate-500">${esc(task.status)} · ${fmtTime(task.created_at)}</span>
+          </span>
+        </button>
+      `).join("");
+    }
+
+    async function selectTask(taskId) {
+      if (state.source) { state.source.close(); state.source = null; }
+      if (state.statsTimer) { clearInterval(state.statsTimer); state.statsTimer = null; }
+      state.currentId = taskId;
+      state.lastEventId = 0;
+      renderTaskList();
+      $("timeline").innerHTML = "";
+      $("destroyBtn").classList.remove("hidden");
+      $("runTitle").textContent = "Loading run…";
+      $("runMeta").textContent = taskId;
+
+      let payload;
+      try { payload = await api(`/api/tasks/${taskId}`); }
+      catch (error) { $("runTitle").textContent = "Run not found"; return; }
+
+      $("runTitle").textContent = payload.task.title;
+      $("runMeta").textContent = `${payload.task.prompt.slice(0, 140)}${payload.task.prompt.length > 140 ? "…" : ""}`;
+      setStatus(payload.task.status);
+      $("footerHint").textContent = payload.task.sandbox_id ? `sandbox ${payload.task.sandbox_id}` : "No active sandbox.";
+      payload.events.forEach((event) => renderEvent(event));
+      if (payload.events.length) state.lastEventId = payload.events[payload.events.length - 1].id;
+
+      if (!["completed", "failed", "cancelled"].includes(payload.task.status)) {
+        connectEvents(taskId);
+        state.statsTimer = setInterval(refreshStats, 3000);
+        refreshStats();
+      } else {
+        refreshStats();
+      }
+    }
+
+    function connectEvents(taskId) {
+      if (state.source) state.source.close();
+      const source = new EventSource(`/api/tasks/${taskId}/events?since_id=${state.lastEventId}`);
+      state.source = source;
+      source.onmessage = (raw) => {
+        let event;
+        try { event = JSON.parse(raw.data); } catch (_) { return; }
+        if (event.id <= state.lastEventId) return;
+        state.lastEventId = event.id;
+        renderEvent(event);
+        if (event.kind === "task_finished") {
+          source.close();
+          state.source = null;
+          if (state.statsTimer) { clearInterval(state.statsTimer); state.statsTimer = null; }
+          $("destroyBtn").classList.add("hidden");
+          loadTasks();
+        }
+      };
+      source.onerror = () => {
+        // EventSource retries automatically; if the run is gone, close.
+        if (state.currentId !== taskId) source.close();
+      };
+    }
+
+    function eventLabel(kind) {
+      return {
+        task_started: "START", sandbox_started: "SANDBOX", step_started: "STEP",
+        assistant_message: "AGENT", tool_call: "TOOL", tool_result: "RESULT",
+        command_started: "EXEC", command_finished: "EXIT", file_read: "READ",
+        file_written: "WRITE", files_listed: "LIST", task_summary: "SUMMARY",
+        task_finished: "FINISH", tool_error: "ERROR", sandbox_destroyed: "DESTROY",
+      }[kind] || kind.toUpperCase();
+    }
+
+    function eventTone(kind) {
+      if (["task_finished", "task_summary", "sandbox_destroyed"].includes(kind)) return "ok";
+      if (["tool_error", "task_finished"].includes(kind)) return "fail";
+      if (["command_started", "command_finished"].includes(kind)) return "exec";
+      if (["tool_call", "tool_result"].includes(kind)) return "tool";
+      if (["assistant_message"].includes(kind)) return "agent";
+      return "info";
+    }
+
+    function pre(text, tone = "") {
+      if (!text) return "";
+      return `<pre class="code ${tone}">${esc(text)}</pre>`;
+    }
+
+    function renderEvent(event) {
+      const { kind, payload } = event;
+      if (kind === "step_started") {
+        const div = document.createElement("div");
+        div.className = "step-rule";
+        div.innerHTML = `<span>step ${esc(payload.step)}</span>`;
+        $("timeline").appendChild(div);
+        scrollTimeline();
+        return;
+      }
+      if (kind === "task_started") {
+        addCard(event, `<div class="text-[11px] leading-relaxed text-slate-300">${esc(payload.prompt)}</div>`);
+        return;
+      }
+      if (kind === "sandbox_started") {
+        $("footerHint").textContent = `sandbox ${payload.id} · ${payload.status}`;
+        $("containerId").textContent = payload.container_id || payload.id;
+        addCard(event, `<div class="grid grid-cols-2 gap-2 text-[11px] text-slate-400">
+          <div>id <span class="font-mono text-slate-200">${esc(payload.id)}</span></div>
+          <div>status <span class="text-acid">${esc(payload.status)}</span></div>
+          <div>network <span class="text-slate-200">${esc(payload.limits?.network || "—")}</span></div>
+          <div>memory <span class="text-slate-200">${esc(payload.limits?.memory_mb || "—")} MB</span></div>
+          <div>workspace <span class="text-slate-200">${esc(payload.limits?.workspace || "—")}</span></div>
+          <div>image <span class="font-mono text-slate-200">${esc(String(payload.image_id || "—").slice(0, 19))}</span></div>
+        </div>`);
+        return;
+      }
+      if (kind === "assistant_message") {
+        if (!payload.content) return;
+        addCard(event, `<div class="text-[11px] leading-relaxed text-slate-300">${esc(payload.content)}</div>`);
+        return;
+      }
+      if (kind === "tool_call") {
+        addCard(event, `<div class="flex items-center gap-2 text-[11px]"><span class="text-cyan">${esc(payload.tool)}</span><span class="text-slate-500">${esc(payload.call_id)}</span></div>${pre(JSON.stringify(payload.arguments, null, 2))}`);
+        return;
+      }
+      if (kind === "command_started") {
+        addCard(event, `<div class="text-[10px] uppercase tracking-wider text-slate-500">command · timeout ${esc(payload.timeout_s)}s</div>${pre("$ " + payload.command, "exec")}`);
+        return;
+      }
+      if (kind === "command_finished") {
+        const ok = payload.exit_code === 0 && !payload.timed_out && !payload.oom_killed;
+        addCard(event, `<div class="flex items-center gap-2 text-[11px]">
+          <span class="${ok ? "text-acid" : "text-danger"}">exit ${esc(payload.exit_code)}</span>
+          <span class="text-slate-500">${esc(payload.duration_ms)} ms</span>
+          ${payload.timed_out ? '<span class="text-danger">timed out</span>' : ""}
+          ${payload.oom_killed ? '<span class="text-danger">oom killed</span>' : ""}
+        </div>${pre(payload.stdout, "exec")}${pre(payload.stderr, "danger")}`);
+        return;
+      }
+      if (kind === "file_written" || kind === "file_read" || kind === "files_listed") {
+        addCard(event, `<div class="text-[11px] text-slate-300"><span class="text-acid">${esc(kind)}</span> ${esc(payload.path)}${payload.chars ? ` · ${esc(payload.chars)} chars` : ""}${payload.count !== undefined ? ` · ${esc(payload.count)} files` : ""}</div>`);
+        return;
+      }
+      if (kind === "tool_error") {
+        addCard(event, `<div class="text-[11px] text-danger">${esc(payload.error)}</div>`);
+        return;
+      }
+      if (kind === "task_summary") {
+        addCard(event, `<div class="text-[11px] leading-relaxed text-acid">${esc(payload.summary)}</div>`);
+        return;
+      }
+      if (kind === "task_finished") {
+        setStatus(payload.status);
+        $("destroyBtn").classList.add("hidden");
+        addCard(event, `<div class="text-[11px] leading-relaxed ${payload.error ? "text-danger" : "text-acid"}">${esc(payload.error || payload.summary || payload.status)}</div>`);
+        return;
+      }
+      if (kind === "sandbox_destroyed") {
+        $("footerHint").textContent = "sandbox destroyed · no residual process";
+        addCard(event, `<div class="text-[11px] text-slate-400">Ephemeral container removed. Host unchanged.</div>`);
+        return;
+      }
+      addCard(event, pre(JSON.stringify(payload, null, 2)));
+    }
+
+    function addCard(event, body) {
+      const tone = eventTone(event.kind);
+      const card = document.createElement("div");
+      card.className = `event event-${tone}`;
+      card.innerHTML = `
+        <div class="event-head">
+          <span class="event-label">${esc(eventLabel(event.kind))}</span>
+          <span class="event-time">${fmtTime(event.ts)}</span>
+        </div>
+        <div class="event-body">${body}</div>`;
+      $("timeline").appendChild(card);
+      scrollTimeline();
+    }
+
+    function scrollTimeline() {
+      const el = $("timeline");
+      el.scrollTop = el.scrollHeight;
+    }
+
+    async function createTask() {
+      const prompt = $("prompt").value.trim();
+      if (!prompt) { $("prompt").focus(); return; }
+      const button = $("createBtn");
+      button.disabled = true;
+      button.innerHTML = "Starting…";
+      try {
+        const task = await api("/api/tasks", { method: "POST", body: JSON.stringify({ prompt }) });
+        $("prompt").value = "";
+        await loadTasks();
+        await selectTask(task.id);
+      } catch (error) {
+        alert(`Could not start run: ${error.message}`);
+      } finally {
+        button.disabled = false;
+        button.innerHTML = 'Run in sandbox <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+      }
+    }
+
+    async function refreshStats() {
+      if (!state.currentId) return;
+      try {
+        const data = await api(`/api/tasks/${state.currentId}/sandbox`);
+        if (data.sandbox_id) $("containerId").textContent = data.sandbox_id;
+        if (!data.stats) {
+          $("cpuText").textContent = "—";
+          $("memText").textContent = "—";
+          return;
+        }
+        const stats = data.stats;
+        const cpu = Number(stats.cpu_percent || 0);
+        $("cpuText").textContent = `${cpu.toFixed(1)}%`;
+        $("cpuBar").style.width = `${Math.min(100, cpu)}%`;
+        const mem = Number(stats.memory_usage_mb || 0);
+        const limit = Number(stats.memory_limit_mb || 512);
+        $("memText").textContent = `${mem.toFixed(1)} / ${limit.toFixed(0)} MB`;
+        $("memBar").style.width = `${Math.min(100, (mem / Math.max(limit, 1)) * 100)}%`;
+      } catch (_) {}
+    }
+
+    async function runProbe(name) {
+      const buttons = document.querySelectorAll(".drill");
+      buttons.forEach((button) => { button.disabled = true; });
+      $("probeResult").innerHTML = `<div class="probe running"><span class="dot dot-acid pulse"></span> Running ${esc(name)} against a fresh sandbox…</div>`;
+      try {
+        const report = await api("/api/containment/probe", { method: "POST", body: JSON.stringify({ probe: name, task_id: state.currentId || null }) });
+        const result = report.probes[0];
+        $("probeResult").querySelectorAll(".probe.running").forEach((el) => el.remove());
+        $("probeResult").insertAdjacentHTML("afterbegin", `
+          <div class="probe ${result.passed ? "pass" : "fail"}">
+            <div class="flex items-center justify-between">
+              <span class="font-semibold">${result.passed ? "CONTAINED" : "FAILED"}</span>
+              <span class="font-mono text-[10px]">${esc(result.duration_ms)} ms</span>
+            </div>
+            <div class="mt-1 text-[11px] text-slate-300">${esc(result.detail)}</div>
+            <div class="mt-1 font-mono text-[9px] text-slate-500">task ${esc(report.task_id || "—")} · container ${esc(report.container_id || "—")} · image ${esc(String(report.image_id || "—").slice(0, 19))}${report.peer_sandbox_id ? ` · peer ${esc(report.peer_sandbox_id)}` : ""}</div>
+            <div class="mt-1 text-[9px] ${report.host_canary_intact ? "text-acid" : "text-danger"}">host canary ${report.host_canary_intact ? "intact" : "CHANGED"}</div>
+            ${result.output ? `<pre class="code mt-2">${esc(result.output)}</pre>` : ""}
+          </div>`);
+        while ($("probeResult").children.length > 4) {
+          $("probeResult").lastElementChild.remove();
+        }
+      } catch (error) {
+        $("probeResult").querySelectorAll(".probe.running").forEach((el) => el.remove());
+        $("probeResult").insertAdjacentHTML("afterbegin", `<div class="probe fail"><div class="font-semibold">NOT RUN</div><div class="mt-1 text-[11px]">${esc(error.message)}</div></div>`);
+      } finally {
+        buttons.forEach((button) => { button.disabled = false; });
+      }
+    }
+
+    async function destroyTask() {
+      if (!state.currentId) return;
+      if (!confirm("Destroy this run and its sandbox?")) return;
+      try {
+        await api(`/api/tasks/${state.currentId}/destroy`, { method: "POST" });
+        await selectTask(state.currentId);
+        await loadTasks();
+      } catch (error) { alert(error.message); }
+    }
+
+    function exportEvidence() {
+      if (!state.currentId) return;
+      window.open(`/api/tasks/${state.currentId}/evidence`, "_blank");
+    }
+
+    document.querySelectorAll(".example").forEach((button) => {
+      button.addEventListener("click", () => { $("prompt").value = button.dataset.prompt || ""; $("prompt").focus(); });
+    });
+
+    (async function init() {
+      await loadConfig();
+      await loadTasks();
+      if (state.tasks.length) await selectTask(state.tasks[0].id);
+    })();
+  </script>
+</body>
+</html>
