@@ -1,0 +1,17 @@
+#cloud-config
+# First-boot setup for a Cage host on a Vultr Ubuntu 24.04 instance.
+# Installs Docker, clones the public repo, and pre-builds the sandbox image.
+# Secrets are NOT placed here: the .env (Vultr Inference key, SANDBOXD_TOKEN)
+# is copied over SSH afterwards, then `docker compose up -d --build` is run.
+package_update: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - git
+runcmd:
+  - [sh, -c, "fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile && echo '/swapfile none swap sw 0 0' >> /etc/fstab"]
+  - [systemctl, enable, --now, docker]
+  - [sh, -c, "ufw allow 80/tcp || true; ufw allow 443/tcp || true"]
+  - [git, clone, "https://github.com/Pawnnwap/cage.git", /opt/cage]
+  - [docker, build, -t, "cage-sandbox:latest", /opt/cage/sandbox_image]
+  - [touch, /opt/cage/.cloud-init-done]

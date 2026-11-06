@@ -457,6 +457,8 @@
         if (!data.stats) {
           $("cpuText").textContent = "—";
           $("memText").textContent = "—";
+          $("cpuBar").style.width = "0%";
+          $("memBar").style.width = "0%";
           return;
         }
         const stats = data.stats;
@@ -473,19 +475,22 @@
     async function runProbe(name) {
       const buttons = document.querySelectorAll(".drill");
       buttons.forEach((button) => { button.disabled = true; });
-      $("probeResult").innerHTML = `<div class="probe running"><span class="dot dot-acid pulse"></span> Running ${esc(name)} against a fresh sandbox…</div>`;
+      $("probeResult").insertAdjacentHTML("afterbegin", `<div class="probe running"><span class="dot dot-acid pulse"></span> Running ${esc(name)} against a fresh sandbox…</div>`);
       try {
         const report = await api("/api/containment/probe", { method: "POST", body: JSON.stringify({ probe: name, task_id: state.currentId || null }) });
         const result = report.probes[0];
+        const drillButton = document.querySelector(`.drill[data-probe="${name}"]`);
+        drillButton.classList.remove("drill-pass", "drill-fail");
+        drillButton.classList.add(result.passed ? "drill-pass" : "drill-fail");
         $("probeResult").querySelectorAll(".probe.running").forEach((el) => el.remove());
         $("probeResult").insertAdjacentHTML("afterbegin", `
           <div class="probe ${result.passed ? "pass" : "fail"}">
             <div class="flex items-center justify-between">
-              <span class="font-semibold">${result.passed ? "CONTAINED" : "FAILED"}</span>
+              <span class="font-semibold">${result.passed ? "CONTAINED" : "FAILED"} · ${esc(name)}</span>
               <span class="font-mono text-[10px]">${esc(result.duration_ms)} ms</span>
             </div>
             <div class="mt-1 text-[11px] text-slate-300">${esc(result.detail)}</div>
-            <div class="mt-1 font-mono text-[9px] text-slate-500">task ${esc(report.task_id || "—")} · container ${esc(report.container_id || "—")} · image ${esc(String(report.image_id || "—").slice(0, 19))}${report.peer_sandbox_id ? ` · peer ${esc(report.peer_sandbox_id)}` : ""}</div>
+            <div class="mt-1 font-mono text-[9px] text-slate-500">task ${esc(String(report.task_id || "—").slice(0, 12))} · container ${esc(String(report.container_id || "—").slice(0, 12))} · image ${esc(String(report.image_id || "—").slice(0, 19))}${report.peer_sandbox_id ? ` · peer ${esc(report.peer_sandbox_id)}` : ""}</div>
             <div class="mt-1 text-[9px] ${report.host_canary_intact ? "text-acid" : "text-danger"}">host canary ${report.host_canary_intact ? "intact" : "CHANGED"}</div>
             ${result.output ? `<pre class="code mt-2">${esc(result.output)}</pre>` : ""}
           </div>`);

@@ -8,6 +8,15 @@ Cage runs a coding agent inside an ephemeral, network-isolated Docker sandbox on
 >
 > **What it does not mean:** kernel-level isolation. Docker shares the host kernel; a kernel/runc escape is out of scope. If you need a stronger boundary, run rootless Docker, gVisor, or Firecracker in front of the same control plane. We state this explicitly because a security judge will ask.
 
+## Live demo
+
+- **URL:** [https://139-180-191-46.sslip.io](https://139-180-191-46.sslip.io) — a Vultr VM (Singapore, 4 vCPU / 8 GB) running the Compose stack from this repo; plain HTTP on `139.180.191.46` also works.
+- **Model:** `qwen3.8-27b` through Vultr Serverless Inference; the LLM key lives only in the control plane.
+- **Evidence key fingerprint:** `a156b18f82b0efe3` — the out-of-band anchor. `GET /api/evidence/public-key` must serve the key matching it; `scripts/verify_evidence.py` checks any exported pack.
+- **Sandbox image:** `cage-sandbox:latest`, image ID `sha256:3df3736e6b6ced96ffe54941e94840c5838e1c47d509773777e8ae1a7ba6185c`, built on the VM before `compose up`.
+- **Status:** all eight containment drills report `CONTAINED` on this deployment; the recorded demo (2:50) shows the drills, the sealed evidence, and the tamper check.
+- **Public safeguards:** 12 requests/min per IP, 20 tasks/day, 40k tokens/task, 2 concurrent tasks. Drill containers are destroyed immediately.
+
 ## Why this fits Vultr Agent Rush
 
 | Vultr requirement | Cage implementation |
@@ -188,14 +197,14 @@ The differentiation is **self-hosted control + signed evidence + drillable conta
 | Claim | Status |
 |---|---|
 | Local agent loop + UI | Verified locally with a fake LLM |
-| Unit/API tests | 29 passing |
+| Unit/API tests | 35 passing |
 | Effective container config | `host_config` snapshot from Docker is included in the sandbox event/drill report; unit-tested with a fake docker client |
 | Sealed evidence | Repeated GETs return identical signed bytes; pre-seal requests return 409 |
-| Docker isolation flags | Asserted by `tests/test_sandbox_flags.py`; not executed on this machine (no Docker) |
-| Read-only canary / cross-task drill | Logic tested in `tests/test_drills.py`; Docker execution pending |
-| Real Vultr inference | Pending `VULTR_API_KEY` and Vultr VM |
-| Containment drills in Docker | Pending Vultr VM |
-| Public demo + video | Pending deployment |
+| Docker isolation flags | Asserted by `tests/test_sandbox_flags.py` **and** by live `host_config` snapshots in every drill report from the Vultr VM |
+| Read-only canary / cross-task drill | Executed on the Vultr VM: `CONTAINED` (signed reports exportable from the live demo) |
+| Real Vultr inference | Done: `qwen3.8-27b` via `api.vultrinference.com` on the live deployment |
+| Containment drills in Docker | 8/8 `CONTAINED` on the Vultr VM (rm -rf, infinite loop, fork bomb, secret, network, host write, read-only canary, cross-task) |
+| Public demo + video | Live at the URL above; 2:50 recorded demo submitted on lablab |
 
 We keep this table in the README so a judge can distinguish demonstrated, designed, and aspirational claims.
 
@@ -213,7 +222,7 @@ docker-compose.yml
 
 ## Video
 
-The acceptance spec is [docs/video-spec.md](docs/video-spec.md); the shot-by-shot narration is [docs/video-script.md](docs/video-script.md). Record only after the eight drills pass on the Vultr VM.
+The acceptance spec is [docs/video-spec.md](docs/video-spec.md); the shot-by-shot narration is [docs/video-script.md](docs/video-script.md). The submitted recording was produced on the Vultr VM with the tools in [tools/video/](tools/video): `narration_vultr.py` (voiceover), `vm_setup.sh`/`vm_display.sh` (virtual display), `record_vultr.py` (drives a real Chrome and a real terminal over CDP while ffmpeg captures), `live_run.py`/`run_drills.py` (real task + drill drivers), and `assemble_vultr.py` (mix, captions, fade). Every frame is a real frame of the deployed system; nothing is drawn.
 
 ## Incident runbook
 

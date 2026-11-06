@@ -223,21 +223,21 @@ def build(path: Path) -> None:
     # 8 - status
     pdf.slide("07 / status", "Where it stands, and what comes next.")
     pdf.panel(56, 180, 416, 230, "Demonstrated", [
-        "- 27 automated tests pass (agent loop, cancellation,",
+        "- 35 automated tests pass (agent loop, cancellation,",
         "  rate limits, evidence signing, drill logic,",
         "  Docker flag construction, OOM classification)",
-        "- Agent loop, SSE UI, evidence sealing and verifier",
-        "  exercised end to end on a local build",
-        "- Public repository with setup, architecture and",
-        "  video spec, MIT licensed",
+        "- Live on a Vultr VM: real qwen3.8-27b runs through",
+        "  Vultr Serverless Inference, public HTTPS demo",
+        "- All eight containment drills CONTAINED on the VM,",
+        "  host-unaffected proof recorded; 2:50 demo video",
     ], ACCENT)
-    pdf.panel(488, 180, 416, 230, "In progress during the build window", [
-        "- Vultr VM deployment with the real Serverless",
-        "  Inference key and a public demo URL",
-        "- Live run of all eight drills on the VM, with the",
-        "  host-unaffected proof recorded",
-        "- Container image pinned by digest; evidence key",
-        "  fingerprint published out of band",
+    pdf.panel(488, 180, 416, 230, "Pinned for verifiers", [
+        "- Evidence key fingerprint a156b18f82b0efe3,",
+        "  published in the README out of band",
+        "- Sandbox image ID sha256:3df3736e... pinned in",
+        "  the README; drill reports record the resolved ID",
+        "- Sealed evidence packs verify with",
+        "  scripts/verify_evidence.py (tamper check: INVALID)",
     ], CYAN)
     pdf.set_xy(56, 430)
     pdf.set_font("Helvetica", "B", 12)

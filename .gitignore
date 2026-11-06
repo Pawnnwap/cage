@@ -11,3 +11,7 @@ node_modules/
 .DS_Store
 caddy_data/
 caddy_config/
+报名信息.txt
+待人工操作.md
+.secrets/
+docs/video_narration_live.json

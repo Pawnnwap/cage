@@ -110,22 +110,25 @@ docker compose restart app
 
 ## 5. Domain and HTTPS (optional)
 
-Edit `caddy/Caddyfile`:
+Set `SITE_ADDRESS` in `.env`. With your own domain, point its DNS A record at the Vultr IP first:
 
-```caddyfile
-cage.example.com {
-    encode gzip
-    reverse_proxy app:8080
-}
+```dotenv
+SITE_ADDRESS=cage.example.com
 ```
 
-Point the DNS A record at the Vultr IP, then:
+Without a domain, the free `sslip.io` DNS maps a dashed IP to that IP, and listing the plain IP keeps HTTP working on it too:
+
+```dotenv
+SITE_ADDRESS=203-0-113-10.sslip.io, http://203.0.113.10
+```
+
+Then recreate Caddy:
 
 ```bash
-docker compose restart caddy
+docker compose up -d caddy
 ```
 
-Caddy obtains a certificate automatically. Without a domain, keep `:80` and use the VM IP.
+Caddy obtains a certificate automatically. Without `SITE_ADDRESS`, it serves plain HTTP on `:80`.
 
 ## 6. Troubleshooting
 

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import io
+import base64
 import posixpath
 import re
-import tarfile
 import time
 import uuid
 from dataclasses import dataclass
@@ -12,6 +11,15 @@ from typing import Any
 
 import docker
 from docker.errors import ImageNotFound, NotFound
+
+# Docker's archive API refuses a read-only rootfs and cannot see tmpfs mounts, so
+# file bytes travel through exec in pieces below the kernel's single-argument
+# limit. A multiple of 4 lets each base64 piece decode on its own.
+_WRITE_CHUNK_B64 = 90_000
+_WRITE_SCRIPT = (
+    "import base64,sys; "
+    "open(sys.argv[1], sys.argv[2]).write(base64.b64decode(sys.argv[3]))"
+)
 
 
 def _container_path(raw: str) -> str:
@@ -286,22 +294,29 @@ class SandboxManager:
 
     def write_file(self, sandbox_id: str, path: str, content: str) -> None:
         record = self._record(sandbox_id)
-        if len(content.encode("utf-8")) > 1_048_576:
-            raise ValueError("file content exceeds the 1MB limit")
-        target = _container_path(path)
-        parent = self._realpath(record, posixpath.dirname(target))
-        target = posixpath.join(parent, posixpath.basename(target))
-        record.container.exec_run(["mkdir", "-p", parent])
         data = content.encode("utf-8")
-        buffer = io.BytesIO()
-        with tarfile.open(fileobj=buffer, mode="w") as tar:
-            info = tarfile.TarInfo(name=posixpath.basename(target))
-            info.size = len(data)
-            info.mode = 0o664
-            tar.addfile(info, io.BytesIO(data))
-        buffer.seek(0)
-        if not record.container.put_archive(parent, buffer.getvalue()):
-            raise RuntimeError(f"failed to write {path}")
+        if len(data) > 1_048_576:
+            raise ValueError("file content exceeds the 1MB limit")
+        target = self._realpath(record, _container_path(path))
+        record.container.exec_run(["mkdir", "-p", posixpath.dirname(target)])
+        encoded = base64.b64encode(data).decode("ascii")
+        chunks = [
+            encoded[start : start + _WRITE_CHUNK_B64]
+            for start in range(0, len(encoded), _WRITE_CHUNK_B64)
+        ] or [""]
+        for index, chunk in enumerate(chunks):
+            mode = "wb" if index == 0 else "ab"
+            result = record.container.exec_run(
+                ["timeout", "5", "python", "-c", _WRITE_SCRIPT, target, mode, chunk],
+                demux=True,
+            )
+            if result.exit_code != 0:
+                _, stderr_b = (
+                    result.output
+                    if isinstance(result.output, tuple)
+                    else (result.output, None)
+                )
+                raise OSError(f"failed to write {path}: {_decode(stderr_b)[-300:]}")
 
     def list_files(self, sandbox_id: str, path: str = ".") -> list[str]:
         record = self._record(sandbox_id)

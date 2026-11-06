@@ -317,6 +317,7 @@ def create_app(settings: Settings | None = None, llm: Any | None = None) -> Fast
                     owner,
                     httponly=True,
                     samesite="lax",
+                    secure=request.headers.get("x-forwarded-proto") == "https",
                     max_age=60 * 60 * 24 * 30,
                 )
         return owner

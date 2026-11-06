@@ -4,18 +4,22 @@ Everything that can be prepared in advance is done. This file is the exact list 
 what is left, in order, with the clicks. The event's own submission entry does
 not open until the event goes live.
 
-## Where things stand (2026-10-21)
+## Where things stand (2026-11-06)
 
 | Item | State |
 |---|---|
-| lablab account | Created via GitHub OAuth (`vladimirhuang`, `e1204709@u.nus.edu`) |
-| Profile | 95% complete, public, cover photo = `dist/stills/01-hook.png`, avatar = GitHub OAuth photo |
+| lablab account | Created via GitHub OAuth (`vladimirhuang`) |
 | Event | Enrolled, screening form submitted |
 | Team | **Cage** — `https://lablab.ai/ai-hackathons/vultr-hackathon/cage` (UTC+8, closed membership, solo) |
-| Discord | Account connected, LABLAB.AI server joined (team channel needs 2 members — optional) |
-| Project (app) | id `cmvi1cdfc003ls601snapg53o` — all fields filled: title, descriptions, tags (VULTR, AgentOps, Generative Agents, LLM Gateway), cover `05-drills.png`, MP4, PDF deck, repo, demo URL, additional info |
+| Project (app) | id `cmvi1cdfc003ls601snapg53o` — all fields filled; **video/deck/cover/demo URL need a refresh before submit (see below)** |
 | Repository | `https://github.com/Pawnnwap/cage` (MIT, public) |
-| Event submission | **Locked until the event opens (2026-11-03).** The team page tile "Submit Project" renders `cursor-not-allowed pointer-events-none` pre-event |
+| Vultr account | Competition registration e-mail (see local records, not committed); $300 official new-customer promo credit, e-mail verified, card linked |
+| Deployment | **Live:** `https://139-180-191-46.sslip.io` (VM `cage-demo`, sgp, vc2-4c-8gb, IP `139.180.191.46`); Caddy serves HTTPS + HTTP; app/sandboxd/caddy healthy |
+| Inference | Serverless Inference subscription `cage-demo`, model `qwen3.8-27b` |
+| Evidence fingerprint | `a156b18f82b0efe3` (pinned in README) |
+| Sandbox image ID | `sha256:3df3736e6b6ced96ffe54941e94840c5838e1c47d509773777e8ae1a7ba6185c` |
+| Drills | 8/8 `CONTAINED` on the VM (signed reports re-runnable from the UI) |
+| Demo video | **`dist/cage-demo-vultr.mp4` — 2:50, real VM recording, replaces the animatic** |
 | Deadline | 2026-11-08 23:00 UTC (Nov 9 07:00 SST) |
 
 ## Remaining steps (do these on/after 2026-11-03)

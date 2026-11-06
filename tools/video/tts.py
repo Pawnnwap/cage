@@ -18,9 +18,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DIST = ROOT / "dist"
-NARRATION = ROOT / "docs" / "video_narration.json"
+NARRATION = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "docs" / "video_narration.json"
+OUT = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / "dist" / "voiceover.wav"
+TOTAL = float(sys.argv[3]) if len(sys.argv) > 3 else 165.0
 VOICE = "en-US-GuyNeural"
-TOTAL = 165.0
 LEAD = 0.35      # speech starts this long after the segment boundary
 TAIL = 0.45      # and must end this long before the next one
 
@@ -80,9 +81,9 @@ def main():
     mix += f"apad=whole_dur={TOTAL},atrim=0:{TOTAL},loudnorm=I=-16:TP=-1.5:LRA=11"
 
     cmd = ["ffmpeg", "-y", *inputs, "-filter_complex", ";".join(filters) + ";" + mix,
-           "-ar", "48000", "-ac", "1", str(DIST / "voiceover.wav")]
+           "-ar", "48000", "-ac", "1", str(OUT)]
     subprocess.run(cmd, check=True, capture_output=True)
-    print("audio ->", DIST / "voiceover.wav")
+    print("audio ->", OUT)
 
 
 if __name__ == "__main__":
